@@ -16,16 +16,18 @@ def get_balance(api_key):
 
 def get_country_list(api_key):
     url = f'https://kodeotp.com/api?api_key={api_key}&action=country'
+    response = requests
     response = requests.get(url)
     data = json.loads(response.text)
     country_list = data['data']
     formatted_country_list = "\n".join([f"{country['country_id']}. {country['name']}" for country in country_list])
     return formatted_country_list
 
-def send_paginated_country_list(chat_id, offset=0, step=10):
+def send_paginated_country_list(chat_id, message_id=None, offset=0, step=10):
     api_key = '73de2d7580ec0ed58df2795ebfd1703c'
     country_list = get_country_list(api_key)
     paginated_list = country_list.split("\n")[offset:offset + step]
+
     if not paginated_list:
         return
 
@@ -37,7 +39,12 @@ def send_paginated_country_list(chat_id, offset=0, step=10):
     if len(country_list.split("\n")) > offset + step:
         markup.add(telebot.types.InlineKeyboardButton("Lanjutkan ➡️", callback_data=f"next_{offset + step}"))
 
-    bot.send_message(chat_id, f"Daftar Negara:\n{formatted_list}", reply_markup=markup)
+    if message_id:
+        bot.edit_message_text(f"Daftar Negara:\n{formatted_list}", chat_id, message_id, reply_markup=markup)
+    else:
+        sent_message = bot.send_message(chat_id, f"Daftar Negara:\n{formatted_list}", reply_markup=markup)
+        message_id = sent_message.message_id
+    return message_id
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -64,6 +71,6 @@ def handle_navigation(call):
     action, offset = call.data.split("_")
     offset = int(offset)
     bot.answer_callback_query(call.id)
-    send_paginated_country_list(call.message.chat.id, offset=offset)
+    send_paginated_country_list(call.message.chat.id, message_id=call.message.message_id, offset=offset)
 
 bot.polling()
