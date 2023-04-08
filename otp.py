@@ -26,6 +26,10 @@ def get_price_list(api_key, country_id, offset=0, step=10):
     url = f'https://kodeotp.com/api?api_key={api_key}&action=get_service&country_id={country_id}&type=regular'
     response = requests.get(url)
     data = json.loads(response.text)
+
+    if 'data' not in data:
+        return "", 0
+
     price_list = data['data']
     paginated_list = price_list[offset:offset + step]
     formatted_price_list = "\n".join([f"{service['service_name']} - {service['cost']} (Stok: {service['count']})" for service in paginated_list])
@@ -113,7 +117,7 @@ def handle_navigation(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("price_prev_") or call.data.startswith("price_next_"))
 def handle_price_navigation(call):
-    action, country_id, offset = call.data.split("_")
+    action, country_id, offset = call.data.split("_", 2)
     offset = int(offset)
     bot.answer_callback_query(call.id)
     send_paginated_price_list(call.message.chat.id, country_id, message_id=call.message.message_id, offset=offset)
