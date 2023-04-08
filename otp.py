@@ -13,15 +13,23 @@ def get_balance(api_key):
     saldo = int(float(data['data']['balance']))
     formatted_saldo = f"Rp {saldo:,}".replace(",", ".")
     return formatted_saldo
-#list negara
+
 def get_country_list(api_key):
     url = f'https://kodeotp.com/api?api_key={api_key}&action=country'
-    response = requests
     response = requests.get(url)
     data = json.loads(response.text)
     country_list = data['data']
     formatted_country_list = "\n".join([f"{country['country_id']}. {country['name']}" for country in country_list])
     return formatted_country_list
+
+def get_price_list(api_key, country_id, offset=0, step=10):
+    url = f'https://kodeotp.com/api?api_key={api_key}&action=get_service&country_id={country_id}&type=regular'
+    response = requests.get(url)
+    data = json.loads(response.text)
+    price_list = data['data']
+    paginated_list = price_list[offset:offset + step]
+    formatted_price_list = "\n".join([f"{service['service_name']} - {service['cost']} (Stok: {service['count']})" for service in paginated_list])
+    return formatted_price_list, len(price_list)
 
 def send_paginated_country_list(chat_id, message_id=None, offset=0, step=10):
     api_key = '73de2d7580ec0ed58df2795ebfd1703c'
@@ -45,15 +53,6 @@ def send_paginated_country_list(chat_id, message_id=None, offset=0, step=10):
         sent_message = bot.send_message(chat_id, f"Daftar Negara:\n{formatted_list}", reply_markup=markup)
         message_id = sent_message.message_id
     return message_id
-#list harga
-def get_price_list(api_key, country_id, offset=0, step=10):
-    url = f'https://kodeotp.com/api?api_key={api_key}&action=get_service&country_id={country_id}&type=regular'
-    response = requests.get(url)
-    data = json.loads(response.text)
-    price_list = data['data']
-    paginated_list = price_list[offset:offset + step]
-    formatted_price_list = "\n".join([f"{service['service_name']} - {service['cost']} (Stok: {service['count']})" for service in paginated_list])
-    return formatted_price_list, len(price_list)
 
 def send_paginated_price_list(chat_id, country_id, message_id=None, offset=0, step=10):
     api_key = '73de2d7580ec0ed58df2795ebfd1703c'
@@ -77,7 +76,7 @@ def send_paginated_price_list(chat_id, country_id, message_id=None, offset=0, st
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "Selamat datang! Untuk mengecek saldo, ketik /saldo. Untuk melihat daftar negara, ketik /listnegara.")
+    bot.reply_to(message, "Selamat datang! Untuk mengecek saldo, ketik /saldo. Untuk melihat daftar negara, ketik /listnegara. Untuk melihat daftar harga, ketik /listharga <country_id>.")
 
 @bot.message_handler(commands=['saldo'])
 def send_saldo(message):
@@ -95,12 +94,6 @@ def send_listnegara(message):
     except Exception as e:
         bot.reply_to(message, f"Terjadi kesalahan saat mengambil daftar negara. Silakan coba lagi nanti.\nError: {e}")
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("prev_") or call.data.startswith("next_"))
-def handle_navigation(call):
-    action, offset = call.data.split("_")
-    offset = int(offset)
-    bot.answer_callback_query(call.id)
-    send_paginated_country_list(call.message.chat.id, message_id=call.message.message_id, offset=offset)
 @bot.message_handler(commands=['listharga'])
 def send_listharga(message):
     try:
@@ -110,10 +103,19 @@ def send_listharga(message):
         bot.reply_to(message, "Format perintah salah. Gunakan format: /listharga <country_id>")
     except Exception as e:
         bot.reply_to(message, f"Terjadi kesalahan saat mengambil daftar harga. Silakan coba lagi nanti.\nError: {e}")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("prev_") or call.data.startswith("next_"))
+def handle_navigation(call):
+    action, offset = call.data.split("_")
+    offset = int(offset)
+    bot.answer_callback_query(call.id)
+    send_paginated_country_list(call.message.chat.id, message_id=call.message.message_id, offset=offset)
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("price_prev_") or call.data.startswith("price_next_"))
 def handle_price_navigation(call):
     action, country_id, offset = call.data.split("_")
     offset = int(offset)
     bot.answer_callback_query(call.id)
     send_paginated_price_list(call.message.chat.id, country_id, message_id=call.message.message_id, offset=offset)
+
 bot.polling()
