@@ -117,7 +117,7 @@ def handle_navigation(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("price_prev-") or call.data.startswith("price_next-"))
 def handle_price_navigation(call):
-    action, country_id, offset = call.data.split("-", 1)[1].split("_")
+    action, country_id, offset = call.data.split("-", 2)
     offset = int(offset)
     bot.answer_callback_query(call.id)
     send_paginated_price_list(call.message.chat.id, country_id, message_id=call.message.message_id, offset=offset)
