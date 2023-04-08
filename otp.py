@@ -19,7 +19,7 @@ def get_country_list(api_key):
     response = requests.get(url)
     data = json.loads(response.text)
     country_list = data['data']
-    formatted_country_list = "\n".join([f"{country['name']} ({country['code']})" for country in country_list])
+    formatted_country_list = "\n".join([country['name'] for country in country_list])
     return formatted_country_list
 
 @bot.message_handler(commands=['start', 'help'])
