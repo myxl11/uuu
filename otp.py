@@ -69,7 +69,7 @@ def send_paginated_price_list(chat_id, country_id, message_id=None, offset=0, st
     if offset > 0:
         markup.add(telebot.types.InlineKeyboardButton("⬅️ Kembali", callback_data=f"price_prev_{country_id}_{offset - step}"))
     if total_count > offset + step:
-        markup.add(telebot.types.InlineKeyboardButton("Lanjutkan ➡️", callback_data=f"price_next_{country_id}_{offset + step}"))
+        markup.add(telebot.types.InlineKeyboardButton("Lanjutkan ➡️", callback_data=f"price_next-{country_id}_{offset + step}"))
 
     if message_id:
         bot.edit_message_text(f"Daftar Harga:\n{price_list}", chat_id, message_id, reply_markup=markup)
@@ -115,9 +115,9 @@ def handle_navigation(call):
     bot.answer_callback_query(call.id)
     send_paginated_country_list(call.message.chat.id, message_id=call.message.message_id, offset=offset)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("price_prev_") or call.data.startswith("price_next_"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("price_prev-") or call.data.startswith("price_next-"))
 def handle_price_navigation(call):
-    action, country_id, offset = call.data.split("_", 2)
+    action, country_id, offset = call.data.split("-", 1)[1].split("_")
     offset = int(offset)
     bot.answer_callback_query(call.id)
     send_paginated_price_list(call.message.chat.id, country_id, message_id=call.message.message_id, offset=offset)
